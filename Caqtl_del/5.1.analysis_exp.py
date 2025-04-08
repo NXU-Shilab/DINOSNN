@@ -1,0 +1,297 @@
+import os
+import pickle
+import h5py
+import joblib
+import numpy as np
+import pandas as pd
+import shap
+import scanpy as sc
+import random
+
+from tqdm import tqdm
+
+np.random.seed(10)
+random.seed(10)
+from utils import  remove_suffix, analyze_cell,load_bgmm
+
+root = [
+    ['/mnt/data0/users/lisg/Data/brain/acc/','/mnt/data0/users/lisg/Data/brain/caqtl_example/caqtl_example_acc_predict.h5'],
+    ['/mnt/data0/users/lisg/Data/brain/cmn/','/mnt/data0/users/lisg/Data/brain/caqtl_example/caqtl_example_cmn_predict.h5'],
+    ['/mnt/data0/users/lisg/Data/brain/cbl/','/mnt/data0/users/lisg/Data/brain/caqtl_example/caqtl_example_cbl_predict.h5'],
+    ['/mnt/data0/users/lisg/Data/brain/sub/','/mnt/data0/users/lisg/Data/brain/caqtl_example/caqtl_example_sub_predict.h5'],
+    ['/mnt/data0/users/lisg/Data/brain/ic/','/mnt/data0/users/lisg/Data/brain/caqtl_example/caqtl_example_ic_predict.h5'],
+    ['/mnt/data0/users/lisg/Data/brain/pn/','/mnt/data0/users/lisg/Data/brain/caqtl_example/caqtl_example_pn_predict.h5'],
+    ['/mnt/data0/users/lisg/Data/brain/pul/','/mnt/data0/users/lisg/Data/brain/caqtl_example/caqtl_example_pul_predict.h5'],
+]
+
+def datajiazai(path):
+    ad = sc.read_h5ad(path + 'cluster_ad.h5ad')
+    cell_names = ad.obs['celltype']
+    cell_names = cell_names.reset_index(drop=True)
+    cell_names = cell_names.apply(remove_suffix)  
+    return cell_names
+
+def shapfenxi(data_path,model,cell_names):
+    with h5py.File(data_path, 'r') as f:
+        data = np.array(f['product_data'])
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer(data)
+    shap_values.feature_names = cell_names
+    result_shap_value = np.full(data.shape, np.nan)
+    for i in range(data.shape[0]):
+
+        row1 = shap_values.values[i]
+        indices_ca = np.where(row1 > 0)[0]
+        result_shap_value[i, indices_ca] = row1[indices_ca]
+
+    shap_df = pd.DataFrame(result_shap_value, columns=cell_names)  
+    final_shap = shap_df.T.groupby(shap_df.columns).mean().T
+    final_shap = pd.DataFrame(data=final_shap.values, columns=final_shap.columns.tolist())
+    final_shap = final_shap.fillna(0)
+    return final_shap,shap_values
+
+def gjiazai(path2,significance):
+    datag = np.load(path2)
+    max_density = np.array([significance[i]['max_density'] for i in range(datag.shape[1])])
+    min_density = np.array([significance[i]['min_density'] for i in range(datag.shape[1])])
+    thresholds_per5 = np.array([significance[i]['percentile_5'] for i in range(datag.shape[1])])
+    thresholds_per10 = np.array([significance[i]['percentile_10'] for i in range(datag.shape[1])])
+    thresholds_per15 = np.array([significance[i]['percentile_15'] for i in range(datag.shape[1])])
+    '''归一化'''
+    datag = (datag - min_density) / (max_density - min_density)
+    thresholds_per5 = (thresholds_per5 - min_density) / (max_density - min_density)
+    thresholds_per10 = (thresholds_per10 - min_density) / (max_density - min_density)
+    thresholds_per15 = (thresholds_per15 - min_density) / (max_density - min_density)
+    return datag,thresholds_per10,thresholds_per15,thresholds_per5
+
+def process_single_sample(a, b):
+
+
+    cell_types = a.columns.unique()
+
+
+    sample_means = {}
+    threshold_means = {}
+
+
+    for ct in cell_types:
+
+        cols = a.columns[a.columns == ct].tolist()
+
+
+        sample_values = a[cols].values.flatten()  
+        th_values = b[cols].values.flatten()
+
+
+        mask = sample_values < th_values
+        significant_values = sample_values[mask]
+        significant_th = th_values[mask]
+
+        if len(significant_values) > 0:
+            sample_means[ct] = np.mean(significant_values)
+            threshold_means[ct] = np.mean(significant_th)
+        else:
+            sample_means[ct] = np.mean(sample_values)
+            threshold_means[ct] = np.mean(th_values)
+
+
+    means_df = pd.DataFrame([sample_means], index=a.index)
+    thresh_df = pd.DataFrame([threshold_means], index=a.index)
+
+    return means_df, thresh_df
+
+def process_cell_types(df_a, df_b):
+
+    unique_cell_types = set(col.split('_')[0] if '_' in col else col for col in df_a.columns)
+
+    result_mean = pd.DataFrame(index=df_a.index)
+    result_threshold = pd.DataFrame(index=[0])
+
+    
+    for cell_type in unique_cell_types:
+
+        cell_cols = [col for col in df_a.columns if col.startswith(cell_type)]
+
+
+        cell_data = df_a[cell_cols]
+        cell_thresholds = df_b[cell_cols].iloc[0] 
+
+
+        significant_mask = cell_data < cell_thresholds
+        significant_cols = significant_mask.any(axis=0)
+
+        if significant_cols.any(): 
+
+            sig_data = cell_data.loc[:, significant_cols]
+            sig_thresholds = cell_thresholds[significant_cols]
+
+            
+            mean_values = sig_data.mean(axis=1)
+            mean_threshold = sig_thresholds.mean()
+        else:
+
+            mean_values = cell_data.mean(axis=1)
+            mean_threshold = cell_thresholds.mean()
+
+
+        result_mean[cell_type] = mean_values
+        result_threshold[cell_type] = mean_threshold
+
+    return result_mean, result_threshold
+
+def merge_neuron_types(df):
+
+    itl_columns = [col for col in df.columns if col.startswith('ITL')]
+
+    if itl_columns:
+
+        df['ITL'] = df[itl_columns].mean(axis=1)
+ 
+        df = df.drop(columns=itl_columns)
+
+    itl_columns2 = [col for col in df.columns if col.startswith('LAMP5')]
+
+    if itl_columns2:
+
+        df['LAMP5'] = df[itl_columns2].mean(axis=1)
+
+        df = df.drop(columns=itl_columns2)
+
+    prerc_columns = [col for col in df.columns if col in ['PIR', 'TP', 'ERC']]
+
+    if 'PRERC' in df.columns:
+
+        prerc_columns.append('PRERC')
+
+        df['PRERC'] = df[prerc_columns].mean(axis=1)
+
+        df = df.drop(columns=[col for col in prerc_columns if col != 'PRERC'])
+    elif prerc_columns:
+
+        df['PRERC'] = df[prerc_columns].mean(axis=1)
+
+        df = df.drop(columns=prerc_columns)
+    return df
+
+
+def old_analysis(datag,thresholds,shap_values,cell_names):
+    result_G_value = np.full(datag.shape, np.nan)
+    result_shap_value = np.full(datag.shape, np.nan)
+    for i in range(datag.shape[0]):
+
+        row = datag[i]
+        cols10 = np.where(row <= thresholds)[0]
+        result_G_value[i, cols10] = row[cols10]
+
+        row1 = shap_values.values[i]
+        indices_ca = np.where(row1 > 0)[0]
+        result_shap_value[i, indices_ca] = row1[indices_ca]
+
+
+    G_df = pd.DataFrame(result_G_value, columns=cell_names)  
+    final_G = G_df.T.groupby(G_df.columns).mean().T
+    final_G = pd.DataFrame(data=final_G.values, columns=final_G.columns.tolist())
+    final_G = merge_neuron_types(final_G)
+
+    shap_df = pd.DataFrame(result_shap_value, columns=cell_names)
+    final_shap = shap_df.T.groupby(shap_df.columns).mean().T
+    final_shap = pd.DataFrame(data=final_shap.values,columns=final_shap.columns.tolist())
+    final_shap = merge_neuron_types(final_shap)
+
+    df1 = final_G
+    df2 = final_shap
+
+    for index, row in df1.iterrows():
+
+        non_zero_columns = [
+            col for col in df1.columns
+            if pd.notna(row[col]) and row[col] != 0
+        ]
+        if non_zero_columns:
+            print(on_zero_columns)
+
+
+    for index, row1 in df1.iterrows():
+        row2 = df2.iloc[index]
+
+ 
+        common_columns = [
+            col for col in df1.columns
+            if pd.notna(row1[col]) and row1[col] != 0 and pd.notna(row2[col]) and row2[col] != 0
+        ]
+
+ 
+        if common_columns:
+            print(common_columns)
+
+
+def new_analysis(datag,thresholds,i):
+    datag = datag[i]
+    datag_df = pd.DataFrame([datag], columns=cell_names)
+    thresholds_df = pd.DataFrame([thresholds], columns=cell_names)
+
+    means_datag_df, thresh_df = process_single_sample(datag_df, thresholds_df)
+    print(means_datag_df)
+
+    return means_datag_df,thresh_df
+
+
+
+
+for root in root:
+    path = root[0]
+    x = os.path.basename(os.path.normpath(path))
+    print(x)
+    data_path = root[1]
+
+    cell_names = datajiazai(path)
+    model = pickle.load(open(path + 'caqtl/negative8/best_model.pkl', 'rb'))
+
+    final_shap,shap_values = shapfenxi(data_path,model,cell_names)
+    final_shap = merge_neuron_types(final_shap)
+
+    significance = joblib.load(os.path.join(path, 'gaussian_significance_data.pkl'))
+    path2 = '/mnt/data0/users/lisg/Data/brain/caqtl_example/' + 'caqtl_example_' + os.path.basename(path.rstrip('/')) + '_g_value.npy'
+    datag, thresholds_per10, thresholds_per15,thresholds_per5 = gjiazai(path2, significance)
+
+
+    old_analysis(datag,thresholds_per10,shap_values=shap_values,cell_names=cell_names)  
+
+
+    
+    # means_datag_df,thresh_df = new_analysis(datag,thresholds_per10,i=0)
+    # means_datag_df = merge_neuron_types(means_datag_df)
+    # thresh_df = merge_neuron_types(thresh_df)
+
+    # final_shap.to_csv(os.path.join('/mnt/data0/users/lisg/Data/brain/caqtl_example/',x+ 'final_shap.csv'),index=False)
+    # means_datag_df.to_csv(os.path.join('/mnt/data0/users/lisg/Data/brain/caqtl_example/',x+ 'final_G.csv'),index=False)
+    # thresh_df.to_csv(os.path.join('/mnt/data0/users/lisg/Data/brain/caqtl_example/', x + 'thresh.csv'),index=False)
+    print('----------------------------------------------------------')
+
+
+
+'''
+def cal_g(path,data_path):
+    with h5py.File(data_path, 'r') as f:
+        positive = f['product_data']
+        positive_samples = np.array(positive)
+        bgmm_path = path + 'gaussian'
+        datag = []
+        for i in tqdm(range(positive_samples.shape[1])):
+            bgmm = load_bgmm(i, bgmm_path)
+            col_data = positive_samples[:, i].reshape(-1, 1)
+            density = np.exp(bgmm.score_samples(col_data))
+            datag.append(density)
+        datag = np.array(datag)
+        datag = datag.transpose()
+    return datag
+for root in root:
+    path = root[0]
+    x = os.path.basename(os.path.normpath(path))
+    data_path = root[1]
+    datag = cal_g(path, data_path)
+    acc = os.path.basename(path.rstrip('/'))
+    path1 = '/mnt/data0/users/lisg/Data/brain/caqtl_example/'+'caqtl_example_'+ acc
+    path2 = path1 + '_g_value.npy'
+    np.save(path2, datag)
+'''
