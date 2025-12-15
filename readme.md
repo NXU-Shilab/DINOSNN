@@ -6,4 +6,4 @@ Welcome to the `DINOSNN` framework repository! `DINOSNN` is a computational f
 
 # **Requirements**
 
-Please create a new conda environment specifically for running `DefunCNVDINOSNN` (e.g. `conda create --DINOSNN python=3.8.20`), install the packages listed in the `requirements.txt` file. Install with conda or pip (e.g. `conda install pandas==2.0.3`).
+Please create a new conda environment specifically for running `DINOSNN` (e.g. `conda create --DINOSNN python=3.8.20`), install the packages listed in the `requirements.txt` file. Install with conda or pip (e.g. `conda install pandas==2.0.3`).
