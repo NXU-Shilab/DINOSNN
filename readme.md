@@ -21,10 +21,10 @@ Note: `DINOSNN` is designed to run on a GPU-enabled environment. Our experiments
 
 ### **Datasets**
 
-**1.Using the datasets from our paper. **We provide preprocessed `h5ad` files used in our experiments:\
+1.Using the datasets from our paper. We provide preprocessed `h5ad` files used in our experiments:\
 <https://drive.google.com/drive/folders/1eW0fZL_XXeg98cLkMSD4Pkw-zCGjpGVO?usp=drive_link>
 
-**2.Using your own scATAC dataset. **You can also use your own scATAC-seq dataset, as long as it is stored in `h5ad` format and meets the following requirements:
+2.Using your own scATAC dataset. You can also use your own scATAC-seq dataset, as long as it is stored in `h5ad` format and meets the following requirements:
 
 `adata.var` must contain at least three columns:
 
