@@ -21,10 +21,10 @@ Note: `DINOSNN` is designed to run on a GPU-enabled environment. Our experiments
 
 ### **Datasets**
 
-1.Using the datasets from our paper. We provide preprocessed `h5ad` files used in our experiments:\
+\*\*1.Using the datasets from our paper. \*\*We provide preprocessed `h5ad` files used in our experiments:\
 <https://drive.google.com/drive/folders/1eW0fZL_XXeg98cLkMSD4Pkw-zCGjpGVO?usp=drive_link>
 
-2.Using your own scATAC dataset. You can also use your own scATAC-seq dataset, as long as it is stored in `h5ad` format and meets the following requirements:
+\*\*2.Using your own scATAC dataset. \*\*You can also use your own scATAC-seq dataset, as long as it is stored in `h5ad` format and meets the following requirements:
 
 `adata.var` must contain at least three columns:
 
@@ -58,12 +58,21 @@ To perform train, simply run the following command:
 python train.py --data <data_folder> --gpu <GPU_id>
 ```
 
+Note: Using the datasets from the paper, each dataset converges in roughly 12 hours of training.
+
 Arguments:
 
 *   `--data`: (Not necessary) data folder. By default, the folder generated in the **Data Preparation** step is used.
 *   `--gpu`: (Not necessary) GPU id. By default, training runs on GPU 0. You can also enable multi-GPU training by specifying multiple device IDs, e.g. `--gpu 0,1,2,3`.
 
+### **Predict**
 
+Using the best model in `processed_data/train_output/` to evaluate AUROC per peak and per cell on the test set:
 
+```python
+python predict.py --data <data_folder> --gpu <GPU_id>
+```
 
+The prediction step generates a `processed_data/train_output/pred.npy` file, which stores the prediction results for each sample in the test set.
 
+## **Part II. Cell-specific Perturbation**
