@@ -1,4 +1,4 @@
-# **DINOSNN(**The code and tutorial are being uploaded, please wait.**)**
+# **DINOSNN(The code and tutorial are being uploaded, please wait.**)
 
 Welcome to the `DINOSNN` framework repository! `DINOSNN` is a computational framework based on chromatin accessibility perturbation modeling to decode cell type-specific regulatory effects of noncoding variants using single-cell ATAC-seq data (scATAC-seq). DINOSNN consists of two components: the first employs a deep neural network to model scATAC-seq profiles and predict single-cell chromatin accessibility. The second component identifies functional noncoding single-nucleotide polymorphisms (SNPs) by quantifying chromatin accessibility differences between reference and variant sequences, enabling precise mapping of SNP-induced cell type- and region-specific regulatory effects in the brain.
 
@@ -35,6 +35,35 @@ Note: `DINOSNN` is designed to run on a GPU-enabled environment. Our experiments
 `adata.obs` must contain a `'celltype'` column indicating the cell type of each cell.
 
 ### **Data Preparation**
+
+Data preparation requires an AnnData (h5ad) file, the human reference genome (hg38), and human PhastCons conservation score files (phastCons100way). The reference genome can be downloaded from: <https://hgdownload.soe.ucsc.edu/downloads.html>  The conservation score files can be downloaded from: <http://hgdownload.cse.ucsc.edu/goldenpath/hg38/phastCons100way/>  Run the following file after completion:
+
+```python
+cd PartI
+python preprocess_data.py --ad <h5ad_file> --output <output_path> --fa <hg38_file> --pha <PhastCons_file>
+```
+
+Arguments:
+
+*   `--ad`: scATAC dataset.
+*   `--output`: (Not necessary) folder for saving training and testing data. By default, a 'processed\_data' folder is created under the DINOSNN folder for storage.
+*   `--fa`: human reference genome (hg38).
+*   `--pha`: human PhastCons conservation score files.
+
+### **Train**
+
+To perform train, simply run the following command:
+
+```python
+python train.py --data <data_folder> --gpu <GPU_id>
+```
+
+Arguments:
+
+*   `--data`: (Not necessary) data folder. By default, the folder generated in the **Data Preparation** step is used.
+*   `--gpu`: (Not necessary) GPU id. By default, training runs on GPU 0. You can also enable multi-GPU training by specifying multiple device IDs, e.g. `--gpu 0,1,2,3`.
+
+
 
 
 
