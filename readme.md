@@ -1,4 +1,4 @@
-# **DINOSNN(The code and tutorial are being uploaded.**)
+# **DINOSNN(The code and tutorial are being uploaded, please wait.**)
 
 Welcome to the `DINOSNN` framework repository! `DINOSNN` is a computational framework based on chromatin accessibility perturbation modeling to decode cell type-specific regulatory effects of noncoding variants using single-cell ATAC-seq data (scATAC-seq). DINOSNN consists of two components: the first employs a deep neural network to model scATAC-seq profiles and predict single-cell chromatin accessibility. The second component identifies functional noncoding single-nucleotide polymorphisms (SNPs) by quantifying chromatin accessibility differences between reference and variant sequences, enabling precise mapping of SNP-induced cell type- and region-specific regulatory effects in the brain.
 
@@ -21,10 +21,10 @@ Note: `DINOSNN` is designed to run on a GPU-enabled environment. Our experiments
 
 ### **Datasets**
 
-1.Using the datasets from our paper. We provide preprocessed `h5ad` files used in our experiments:\
+\*\*1.Using the datasets from our paper. \*\*We provide preprocessed `h5ad` files used in our experiments:\
 <https://drive.google.com/drive/folders/1eW0fZL_XXeg98cLkMSD4Pkw-zCGjpGVO?usp=drive_link>
 
-2.Using your own scATAC dataset. You can also use your own scATAC-seq dataset, as long as it is stored in `h5ad` format and meets the following requirements:
+\*\*2.Using your own scATAC dataset. \*\*You can also use your own scATAC-seq dataset, as long as it is stored in `h5ad` format and meets the following requirements:
 
 `adata.var` must contain at least three columns:
 
@@ -81,5 +81,18 @@ The prediction step generates a `processed_data/train_output/pred.npy` file, w
 
 Download the 1000 Genomes Project variant data for constructing the background distribution and the functional variant dataset (CaQTL) for training the LightGBM model. The 1000 Genomes Project variant data can be downloaded from <https://www.internationalgenome.org/>, and the CaQTL dataset can be accessed from <https://doi.org/10.7303/SYN25955362>.
 
+Subsequently, run the following script to generate h5 files that can be used by the optimal model in **Part I** for prediction(1.One million randomly sampled background variants from the 1000 Genomes Project (1KGP). 2.The CaQTL dataset.):
 
+```bash
+cd PartII
+chmod -x handle_data.sh
+sh handle_data.sh <raw_1kgp_data> <CaQTL_data> <hg38_file> <PhastCons_file>
+```
+
+Arguments:
+
+*   `--raw`*`_`*`1kgp_data`: Downloaded 1000 Genomes Project variant data in VCF format.
+*   `--CaQTL_data`: Downloaded CaQTL variant data in CSV format.
+*   `--fa`: human reference genome (hg38).
+*   `--pha`: human PhastCons conservation score files.
 
