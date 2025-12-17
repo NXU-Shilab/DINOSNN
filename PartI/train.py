@@ -46,13 +46,11 @@ def main():
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, betas=(0.95, 0.9995), weight_decay=1e-3)
     scheduler = None
 
-    '''4.记录，评价指标，早停'''
-    if not os.path.exists(output_path): os.mkdir(output_path)  # 创建输出文件夹
+    if not os.path.exists(output_path): os.mkdir(output_path)
     writer = SummaryWriter(log_dir=output_path)
-    early_stopping_val_auc = EarlyStopping(patience=30, verbose=True)  # 注意，50个epoch未增加，就退出
+    early_stopping_val_auc = EarlyStopping(patience=30, verbose=True)
     best_auc = 0
 
-    '''5.训练'''
     total_iters = 0
     for epoch in range(args.epochs):
         t0 = time.time()
@@ -63,7 +61,7 @@ def main():
         data_loader = tqdm(tra_DataLoader, file=sys.stdout)
         for tra_id, (tra_x, tra_y) in enumerate(data_loader):
             # sig = nn.Sigmoid()
-            optimizer.zero_grad()  # 清空梯度
+            optimizer.zero_grad()
             tra_x = tra_x.to(device, dtype=torch.float32)
             tra_y = tra_y.to(device, dtype=torch.float32)
 
@@ -75,13 +73,10 @@ def main():
                 print(f"Step {tra_id} loss is NaN. Saving gradients for inspection.")
 
             scaler.scale(loss).backward()
-            # 梯度裁剪部分
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=4.0)
-
-            scaler.step(optimizer)  # 更新优化器
+            scaler.step(optimizer)
             scaler.update()
-            # 更新学习率
             if scheduler is not None:
                 total_iters += 1
                 scheduler.step()
@@ -89,13 +84,9 @@ def main():
                 writer.add_scalar('lr', curr_lr[0], total_iters)
             else:
                 curr_lr = [args.lr]
-
             total_tra_loss += loss.item()
-            # 更新ema
             ema.update(model)
-        # 计算loss
         epoch_train_loss = total_tra_loss / (tra_id + 1)
-
         '''=================================================================='''
         model.eval()
         total_val_loss = 0
@@ -107,7 +98,6 @@ def main():
                 val_x = val_x.to(device, non_blocking=True, dtype=torch.float32)
                 val_y = val_y.to(device, non_blocking=True, dtype=torch.float32)
                 val_output = model(val_x)
-
                 loss = loss_fun(val_output, val_y)
                 total_val_loss += loss.item()
                 new_out = sig(val_output)
@@ -132,13 +122,12 @@ def main():
         print('[Epoch %d]|train_loss: %.5f|val_loss: %.5f|val_auc: %5f|val_auc_ema: %5f|Time used: %.2fs' % (
             epoch + 1, epoch_train_loss, epoch_val_loss, epoch_val_auc, epoch_val_auc_ema, t1 - t0,), flush=True)
 
-        # 保存最佳验证auc模型
-        if max(epoch_val_auc, epoch_val_auc_ema) > best_auc:  # 如果有一个大于最佳auc，就执行
+        if max(epoch_val_auc, epoch_val_auc_ema) > best_auc:
             if epoch_val_auc_ema > epoch_val_auc:
-                state_dict = ema.module.state_dict()  # 如果ema大于普通的，就保存ema权重
+                state_dict = ema.module.state_dict()
             else:
-                state_dict = model.state_dict()  # 反之保存普通权重
-            opti_state = optimizer.state_dict()  # 优化器权重
+                state_dict = model.state_dict()
+            opti_state = optimizer.state_dict()
             best_auc = max(epoch_val_auc, epoch_val_auc_ema)
             checkpoint = {'best_model_state': state_dict,
                           'best_optimizer_state': opti_state,
@@ -146,8 +135,7 @@ def main():
                           'current_val_loss': epoch_val_loss,
                           'val_auc': best_auc,
                           'epoch': epoch + 1}
-            torch.save(checkpoint, '%s/best_val_auc_model.pth' % output_path)  # 保存最佳模型状态字典到文件
-        # 应用 Early Stopping
+            torch.save(checkpoint, '%s/best_val_auc_model.pth' % output_path)
         early_stopping_val_auc(metrics=max(epoch_val_auc, epoch_val_auc_ema))
         if early_stopping_val_auc.early_stop:
             print("Early stopping")

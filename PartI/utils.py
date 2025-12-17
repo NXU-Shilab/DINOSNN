@@ -154,29 +154,6 @@ def fix_random(seed):
     torch.backends.cudnn.deterministic = False
     torch.backends.cudnn.benchmark = True
 
-# def test_func(model, DataLoader, device):
-#     model.eval()
-#     true, pred = [], []
-#     cell_auc, peak_auc, cell_aupr, peak_aupr = [], [], [], []
-#     with torch.no_grad():
-#         val_bar = tqdm(DataLoader, file=sys.stdout)
-#         for val_id, (x, y) in enumerate(val_bar):
-#             sig = nn.Sigmoid()
-#             x = x.to(device, non_blocking=True, dtype=torch.float32)
-#             y = y.to(device, non_blocking=True, dtype=torch.float32)
-#             output = model(x)
-#             new_out = sig(output)
-#             true.append(y.detach().cpu())
-#             pred.append(new_out.detach().cpu())
-#         true = torch.cat(true, 0).numpy()
-#         pred = torch.cat(pred, 0).numpy()
-#         for i in range(true.shape[0]):
-#             peak_auc.append(roc_auc_score(y_true=true[i, :], y_score=pred[i, :]))
-#         for i in range(true.shape[1]):
-#             cell_auc.append(roc_auc_score(y_true=true[:, i], y_score=pred[:, i]))
-#         print('auROC per peak:', sum(peak_auc) / len(peak_auc))
-#         print('auROC per cell:', sum(cell_auc) / len(cell_auc))
-#         return pred
 def load_data(data_path):
     train_data = h5py.File(os.path.join(data_path, 'train_data.h5'), 'r')
     train_ph_X = train_data["train_ph_X"]
@@ -257,10 +234,10 @@ class StochasticReverseComplement(nn.Module):
         super(StochasticReverseComplement, self).__init__()
     def forward(self, seq_1hot, training=None):
         if training:
-           rc_seq_1hot = seq_1hot.index_select(1, torch.tensor([3, 2, 1, 0]))  # 矩阵（1344，4）中那四列换位置
-           rc_seq_1hot = rc_seq_1hot.flip([2])  # （1344，4）中第一行与最后一行换位
-           reverse_bool = torch.rand(1) > 0.5  # 输出一个随机值看是否大于0.5
-           src_seq_1hot = rc_seq_1hot if reverse_bool else seq_1hot  # 如果上一句是true，则输出翻转后的，反之 输出输入的序列
+           rc_seq_1hot = seq_1hot.index_select(1, torch.tensor([3, 2, 1, 0]))
+           rc_seq_1hot = rc_seq_1hot.flip([2])
+           reverse_bool = torch.rand(1) > 0.5
+           src_seq_1hot = rc_seq_1hot if reverse_bool else seq_1hot
            return src_seq_1hot, reverse_bool
         else:
            return seq_1hot, torch.tensor(False)
@@ -290,18 +267,15 @@ def shift_sequence(seq_1hot, shift):
     # Create padding
     pad = 0.25 * torch.ones_like(seq[:, :, :abs(shift)])
     if shift > 0:
-        # Shift to the right
         sliced_seq = seq[:, :,:-shift,]
         sseq = torch.cat([pad, sliced_seq], dim=2)
     else:
-        # Shift to the left
         sliced_seq = seq[:,:, -shift:,]
         sseq = torch.cat([sliced_seq, pad], dim=2)
 
     sseq = sseq.view(input_shape)
     return sseq
 class SwitchReverse(nn.Module):
-    """Reverse predictions if the inputs were reverse complemented."""
     def __init__(self):
         super(SwitchReverse, self).__init__()
 
