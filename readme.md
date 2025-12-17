@@ -15,7 +15,7 @@ conda env create -f environment.yml
 conda activate DINOSNN
 ```
 
-Note: `DINOSNN` is designed to run on a GPU-enabled environment. Our experiments were conducted on a Linux server with an Intel(R) Xeon(R) Silver 4316 CPU, 512 GB system memory, and an NVIDIA GeForce RTX 3090 GPU (24 GB VRAM). We recommend running DINOSNN on a system with at least `128GB RAM` and an `NVIDIA GPU with >= 24 GB VRAM`. We also provide a full snapshot of the conda environment used to run DINOSNN. Because this snapshot includes all exact package versions and dependencies, creating the conda environment from it may take some time.
+Note: `DINOSNN` is designed to run on a GPU-enabled environment. Our experiments were conducted on a Linux server with an Intel(R) Xeon(R) Silver 4316 CPU, 512 GB system memory, and an NVIDIA GeForce RTX 3090 GPU (24 GB VRAM). We recommend running DINOSNN on a system with at least `256GB RAM` and an `NVIDIA GPU with >= 24 GB VRAM`. We also provide a full snapshot of the conda environment used to run DINOSNN. Because this snapshot includes all exact package versions and dependencies, creating the conda environment from it may take some time.
 
 ## **Part I. Single-cell Accessibility Modeling**
 
