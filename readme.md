@@ -96,3 +96,25 @@ Arguments:
 *   `--hg38_file`: human reference genome (hg38).
 *   `--PhastCons_file`: human PhastCons conservation score files.
 
+### **Step 2**
+
+Utilize the optimal model from **Part I** to predict on **Step 1** processed data, followed by fitting a Gaussian Mixture Model  and training a LightGBM model:
+
+```python
+python partI_predict.py --bestmodel <model_path> --gpu <GPU_id> --kgp <random_1kgp_data> --caqtl <CaQTL_data>
+python compute_gaussion.py --path <1kgp_path>
+python ML_train.py --caqtl <CaQTL_data>
+```
+
+Arguments:
+
+*   `--bestmodel`: The optimal model saved in Part I. By default, it is located in the `processed_data/train_output` directory as model files.
+*   `--gpu`: (Not necessary) GPU id.
+*   `--kgp`: 1 million randomly generated variant data entries from the 1000 Genomes Project (generated in **Step 1**)
+*   `--caqtl`: CaQTL data generated in **Step 1**.
+*   `--path`: Directory containing post-prediction data of 1M randomly selected 1KGP variant entries.
+
+### **Step 3**
+
+
+
