@@ -39,7 +39,7 @@ Note: `DINOSNN` is designed to run on a GPU-enabled environment. Our experiments
 Data preparation requires an AnnData (h5ad) file, the human reference genome (hg38), and human PhastCons conservation score files (phastCons100way). The reference genome can be downloaded from: <https://hgdownload.soe.ucsc.edu/downloads.html>  The conservation score files can be downloaded from: <http://hgdownload.cse.ucsc.edu/goldenpath/hg38/phastCons100way/>  Run the following file after completion:
 
 ```python
-cd PartI
+cd Single-cell_Accessibility_Modeling
 python preprocess_data.py --ad <h5ad_file> --output <output_path> --fa <hg38_file> --pha <PhastCons_file>
 ```
 
@@ -84,7 +84,7 @@ Download the 1000 Genomes Project variant data for constructing the background d
 Subsequently, run the following script to generate h5 files that can be used by the optimal model in **Part I** for prediction(1.One million randomly sampled background variants from the 1000 Genomes Project (1KGP). 2.The CaQTL dataset.):
 
 ```bash
-cd PartII
+cd Cell-specific_Perturbation
 chmod -x handle_data.sh
 sh handle_data.sh <raw_1kgp_data> <CaQTL_data> <hg38_file> <PhastCons_file>
 ```
@@ -93,6 +93,6 @@ Arguments:
 
 *   `--raw`*`_`*`1kgp_data`: Downloaded 1000 Genomes Project variant data in VCF format.
 *   `--CaQTL_data`: Downloaded CaQTL variant data in CSV format.
-*   `--fa`: human reference genome (hg38).
-*   `--pha`: human PhastCons conservation score files.
+*   `--hg38_file`: human reference genome (hg38).
+*   `--PhastCons_file`: human PhastCons conservation score files.
 
