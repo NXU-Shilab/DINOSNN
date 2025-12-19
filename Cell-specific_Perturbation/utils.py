@@ -4,6 +4,8 @@ import os
 import h5py
 import pandas as pd
 import re
+from torch import nn
+import torch
 from tqdm import tqdm
 from scipy import sparse
 import pysam
@@ -178,3 +180,59 @@ def extract_values2(row):
     start_pos = int(parts[1].split('-')[0])
     new_pos = start_pos + 135
     return pd.Series([chr_value, new_pos])
+
+
+class StochasticReverseComplement(nn.Module):
+    def __init__(self):
+        super(StochasticReverseComplement, self).__init__()
+    def forward(self, seq_1hot, training=None):
+        if training:
+           rc_seq_1hot = seq_1hot.index_select(1, torch.tensor([3, 2, 1, 0]))
+           rc_seq_1hot = rc_seq_1hot.flip([2])
+           reverse_bool = torch.rand(1) > 0.5
+           src_seq_1hot = rc_seq_1hot if reverse_bool else seq_1hot
+           return src_seq_1hot, reverse_bool
+        else:
+           return seq_1hot, torch.tensor(False)
+class StochasticShift(nn.Module):
+    def __init__(self, shift_max=3, pad="uniform"):
+        super(StochasticShift, self).__init__()
+        self.shift_max = shift_max
+        self.pad = pad
+        self.augment_shifts = torch.arange(-self.shift_max, self.shift_max + 1)
+
+    def forward(self, seq_1hot):
+        if self.training:
+            shift_i = torch.randint(low=0, high=len(self.augment_shifts), size=())
+            shift = self.augment_shifts[shift_i]
+            if shift != 0:
+                sseq_1hot = shift_sequence(seq_1hot, shift)  # You need to implement this function
+            else:
+                sseq_1hot = seq_1hot
+            return sseq_1hot
+        else:
+            return seq_1hot
+def shift_sequence(seq_1hot, shift):
+    seq =seq_1hot
+    if len(seq.shape) != 3:
+        raise ValueError("input sequence should be rank 3")
+    input_shape = seq.shape
+    # Create padding
+    pad = 0.25 * torch.ones_like(seq[:, :, :abs(shift)])
+    if shift > 0:
+        sliced_seq = seq[:, :,:-shift,]
+        sseq = torch.cat([pad, sliced_seq], dim=2)
+    else:
+        sliced_seq = seq[:,:, -shift:,]
+        sseq = torch.cat([sliced_seq, pad], dim=2)
+
+    sseq = sseq.view(input_shape)
+    return sseq
+class SwitchReverse(nn.Module):
+    def __init__(self):
+        super(SwitchReverse, self).__init__()
+
+    def forward(self, x_reverse,):
+        x = x_reverse[0]
+        reverse = x_reverse[1].to(x.device)
+        return torch.where(reverse, torch.flip(x, dims=[1]), x)

@@ -7,7 +7,7 @@ import pyBigWig
 from utils import extract_af, make_dataset
 
 def make_parser():
-    parser = configargparse.ArgParser(description="Preprocessing 1kgp data")
+    parser = configargparse.ArgParser(description="")
     parser.add_argument('--data_path',default='../PartII_data')
     parser.add_argument('--seed',default=10,type=int)
     parser.add_argument('--fa', type=str)

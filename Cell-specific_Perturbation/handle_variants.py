@@ -8,7 +8,7 @@ from utils import extract_values, extract_values2, make_dataset
 
 
 def make_parser():
-    parser = configargparse.ArgParser(description="Preprocessing eqtl data")
+    parser = configargparse.ArgParser(description="")
     parser.add_argument('--caqtl', type=str)
     parser.add_argument('--kgp_data', type=str, default='../PartII_data')
     parser.add_argument('--seed', default=10, type=int)

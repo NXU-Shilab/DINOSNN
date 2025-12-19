@@ -2,7 +2,8 @@
 
 Welcome to the `DINOSNN` framework repository! `DINOSNN` is a computational framework based on chromatin accessibility perturbation modeling to decode cell type-specific regulatory effects of noncoding variants using single-cell ATAC-seq data (scATAC-seq). DINOSNN consists of two components: the first employs a deep neural network to model scATAC-seq profiles and predict single-cell chromatin accessibility. The second component identifies functional noncoding single-nucleotide polymorphisms (SNPs) by quantifying chromatin accessibility differences between reference and variant sequences, enabling precise mapping of SNP-induced cell type- and region-specific regulatory effects in the brain.
 
-<img src alt="DINOSNN Framework" width="350">
+<img src="Framework_photo/DINOSNN.png" alt="DINOSNN Framework" width="350">
+
 
 ## **Requirements**
 
@@ -21,10 +22,10 @@ Note: `DINOSNN` is designed to run on a GPU-enabled environment. Our experiments
 
 ### **Datasets**
 
-\*\*1.Using the datasets from our paper. \*\*We provide preprocessed `h5ad` files used in our experiments:\
+1.Using the datasets from our paper. We provide preprocessed `h5ad` files used in our experiments:\
 <https://drive.google.com/drive/folders/1eW0fZL_XXeg98cLkMSD4Pkw-zCGjpGVO?usp=drive_link>
 
-\*\*2.Using your own scATAC dataset. \*\*You can also use your own scATAC-seq dataset, as long as it is stored in `h5ad` format and meets the following requirements:
+2.Using your own scATAC dataset. You can also use your own scATAC-seq dataset, as long as it is stored in `h5ad` format and meets the following requirements:
 
 `adata.var` must contain at least three columns:
 
@@ -91,7 +92,7 @@ sh handle_data.sh <raw_1kgp_data> <CaQTL_data> <hg38_file> <PhastCons_file>
 
 Arguments:
 
-*   `--raw`*`_`*`1kgp_data`: Downloaded 1000 Genomes Project variant data in VCF format.
+*   `--raw_1kgp_data`: Downloaded 1000 Genomes Project variant data in VCF format.
 *   `--CaQTL_data`: Downloaded CaQTL variant data in CSV format.
 *   `--hg38_file`: human reference genome (hg38).
 *   `--PhastCons_file`: human PhastCons conservation score files.
@@ -106,15 +107,13 @@ python compute_gaussion.py --path <1kgp_path>
 python ML_train.py --caqtl <CaQTL_data>
 ```
 
+Note:  When using the datasets from the paper, Gaussian Mixture Model (GMM) fitting for each dataset requires approximately 15–20 hours and system memory usage exceeds 128GB.
+
 Arguments:
 
 *   `--bestmodel`: The optimal model saved in Part I. By default, it is located in the `processed_data/train_output` directory as model files.
 *   `--gpu`: (Not necessary) GPU id.
-*   `--kgp`: 1 million randomly generated variant data entries from the 1000 Genomes Project (generated in **Step 1**)
+*   `--kgp`: 1M randomly generated variant data entries from the 1KGP (generated in **Step 1**)
 *   `--caqtl`: CaQTL data generated in **Step 1**.
 *   `--path`: Directory containing post-prediction data of 1M randomly selected 1KGP variant entries.
-
-### **Step 3**
-
-
 
